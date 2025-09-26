@@ -1,6 +1,8 @@
 # Sistema de Vistorias Interno - Vistoria Cautelar SP
 
-![Logo](https://via.placeholder.com/150?text=VC) <!-- logo -->
+<p align="center">
+  <img width="859" height="859" alt="logoVistoria v2 0" src="https://github.com/user-attachments/assets/b39add5a-8057-4c1c-b6b9-4855baba5efb" />
+</p>
 
 ## Descrição do Projeto
 
