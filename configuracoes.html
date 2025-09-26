@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/configuracoes.css">
+
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="dashboard.html">Dashboard</a>
+                <span>></span>
+                <span>Configurações</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <span>🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Configurações</h1>
+            <p class="page-subtitle">Configure seu perfil e preferências</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="settings-section">
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="form-input" disabled value="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="newPassword">Nova Senha</label>
+                    <input type="password" id="newPassword" class="form-input" placeholder="Digite nova senha">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirmar Senha</label>
+                    <input type="password" id="confirmPassword" class="form-input" placeholder="Confirme a senha">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="theme">Tema</label>
+                    <select id="theme" class="form-select">
+                        <option value="light">Claro</option>
+                        <option value="dark">Escuro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar Configurações</button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+            document.getElementById('theme').value = savedTheme;
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Save Settings
+        function saveSettings(e) {
+            e.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const theme = document.getElementById('theme').value;
+
+            if (newPassword && newPassword !== confirmPassword) {
+                showAlert('error', 'Senhas não coincidem!');
+                return;
+            }
+
+            // Simula salvamento de senha
+            if (newPassword) {
+                // Em produção, enviar para backend
+            }
+
+            localStorage.setItem('theme', theme);
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeIcon(theme);
+            showAlert('success', 'Configurações salvas com sucesso!');
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            if (checkSession()) {
+                document.getElementById('email').value = JSON.parse(localStorage.getItem('userSession')).email || 'user@example.com';
+                document.getElementById('settingsForm').addEventListener('submit', saveSettings);
+            }
+        });
+    </script>
+</body>
+</html>

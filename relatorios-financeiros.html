@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios Financeiros - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/relatorios-financeiros.css">
+
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="dashboard.html">Dashboard</a>
+                <span>></span>
+                <span>Relatórios Financeiros</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <span>🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Relatórios Financeiros</h1>
+            <p class="page-subtitle">Acesse relatórios financeiros do sistema</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="filter-section">
+                    <input type="date" class="form-input" id="startDate" placeholder="Data Inicial">
+                    <input type="date" class="form-input" id="endDate" placeholder="Data Final">
+                </div>
+                <button class="btn btn-secondary" onclick="exportReports()">
+                    <span>📊</span>
+                    Exportar Relatório
+                </button>
+            </div>
+        </div>
+
+        <div class="reports-grid" id="reportsGrid">
+            <!-- Relatórios carregados dinamicamente -->
+        </div>
+    </main>
+
+    <script>
+        // Sample financial reports data
+        const sampleReports = [
+            { title: 'Receita Total', value: 'R$ 250.000', description: 'No período' },
+            { title: 'Custos Operacionais', value: 'R$ 80.000', description: 'Gastos totais' },
+            { title: 'Lucro Líquido', value: 'R$ 170.000', description: 'Receita - Custos' },
+            { title: 'Vistorias Faturadas', value: '450', description: 'Cobranças emitidas' }
+        ];
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            const profile = JSON.parse(session).profile;
+            if (profile !== 'admin' && profile !== 'gestor') {
+                document.getElementById('alertContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        Acesso restrito. Apenas admins e gestores podem acessar esta seção.
+                    </div>
+                `;
+                document.getElementById('reportsGrid').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔒</div>
+                        <p>Acesso não autorizado.</p>
+                    </div>
+                `;
+                return false;
+            }
+            return true;
+        }
+
+        // Populate Reports
+        function populateReports() {
+            const reportsGrid = document.getElementById('reportsGrid');
+            reportsGrid.innerHTML = '';
+            sampleReports.forEach(report => {
+                const reportCard = document.createElement('div');
+                reportCard.className = 'report-card';
+                reportCard.innerHTML = `
+                    <h3 class="report-title">${report.title}</h3>
+                    <div class="report-value">${report.value}</div>
+                    <p class="stat-description">${report.description}</p>
+                `;
+                reportsGrid.appendChild(reportCard);
+            });
+        }
+
+        // Export Reports
+        function exportReports() {
+            const csv = ['Título,Valor,Descrição'];
+            sampleReports.forEach(r => csv.push(`${r.title},${r.value},${r.description}`));
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'relatorios-financeiros.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            if (checkSession()) {
+                populateReports();
+                // Adicionar lógica para filtros de data
+                document.getElementById('startDate').addEventListener('change', populateReports);
+                document.getElementById('endDate').addEventListener('change', populateReports);
+            }
+        });
+    </script>
+</body>
+</html>

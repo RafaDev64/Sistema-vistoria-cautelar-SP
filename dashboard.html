@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo">VC</div>
+                <div class="company-info">
+                    <h1>Vistoria Cautelar SP</h1>
+                    <p>Sistema de Gerenciamento de Vistorias</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div class="user-details">
+                        <h3 id="userName">Usuário</h3>
+                        <p id="userProfile">perfil</p>
+                    </div>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="toggleTheme()" aria-label="Alternar tema">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <button class="btn btn-danger" onclick="logout()" aria-label="Sair">
+                    <span>🚪</span>
+                    Sair
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div id="alertContainer"></div>
+        <div id="dashboardContent">
+            <!-- Conteúdo será carregado dinamicamente com base no perfil do usuário -->
+        </div>
+    </main>
+
+    <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session) {
+                showAlert('error', 'Sessão inválida. Faça login novamente.');
+                window.location.href = 'index.html';
+                return null;
+            }
+            try {
+                const parsedSession = JSON.parse(session);
+                if (!parsedSession.profile || !['admin', 'gestor', 'vistoriador'].includes(parsedSession.profile)) {
+                    showAlert('error', 'Perfil inválido. Faça login novamente.');
+                    window.location.href = 'index.html';
+                    return null;
+                }
+                return parsedSession;
+            } catch (e) {
+                console.error('Erro ao parsear sessão:', e);
+                showAlert('error', 'Erro na sessão. Faça login novamente.');
+                window.location.href = 'index.html';
+                return null;
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        function logout() {
+            if (confirm('Deseja realmente sair do sistema?')) {
+                localStorage.removeItem('userSession');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Navigation
+        function navigate(url) {
+            console.log('Navegando para:', url);
+            try {
+                window.location.href = url;
+            } catch (e) {
+                console.error('Erro ao navegar:', e);
+                showAlert('error', 'Não foi possível navegar para a página. Verifique se ela existe.');
+            }
+        }
+
+        // Dashboard Content Templates
+        const dashboardTemplates = {
+            admin: {
+                welcome: {
+                    title: 'Painel Administrativo',
+                    subtitle: 'Controle total do sistema de vistorias'
+                },
+                stats: [
+                    {
+                        title: 'Total de Usuários',
+                        value: '24',
+                        description: '+3 este mês',
+                        icon: '👥',
+                        iconBg: '#3b82f6'
+                    },
+                    {
+                        title: 'Vistorias Ativas',
+                        value: '142',
+                        description: '18 finalizadas hoje',
+                        icon: '📋',
+                        iconBg: '#10b981'
+                    },
+                    {
+                        title: 'Relatórios Gerados',
+                        value: '89',
+                        description: 'Este mês',
+                        icon: '📊',
+                        iconBg: '#f59e0b'
+                    },
+                    {
+                        title: 'Taxa de Conclusão',
+                        value: '94%',
+                        description: 'Meta: 90%',
+                        icon: '🎯',
+                        iconBg: '#8b5cf6'
+                    }
+                ],
+                actions: [
+                    {
+                        title: 'Gerenciar Usuários',
+                        description: 'Criar, editar e excluir contas de usuários do sistema',
+                        icon: '👤',
+                        iconBg: '#3b82f6',
+                        action: () => navigate('usuarios.html')
+                    },
+                    {
+                        title: 'Gerenciar Vistorias',
+                        description: 'Visualizar, criar e editar todas as vistorias do sistema',
+                        icon: '📝',
+                        iconBg: '#10b981',
+                        action: () => navigate('gerenciar-vistorias.html')
+                    },
+                    {
+                        title: 'Relatórios Gerenciais',
+                        description: 'Acessar relatórios completos e análises do sistema',
+                        icon: '📈',
+                        iconBg: '#f59e0b',
+                        action: () => navigate('relatorios-gerenciais.html')
+                    },
+                    {
+                        title: 'Relatórios Financeiros',
+                        description: 'Acessar relatórios financeiros do sistema',
+                        icon: '💰',
+                        iconBg: '#8b5cf6',
+                        action: () => navigate('relatorios-financeiros.html')
+                    },
+                    {
+                        title: 'Relatórios de Vistorias',
+                        description: 'Acessar relatórios detalhados de vistorias',
+                        icon: '🔍',
+                        iconBg: '#ef4444',
+                        action: () => navigate('relatorios-vistorias.html')
+                    },
+                    {
+                        title: 'Configurações do Sistema',
+                        description: 'Configurar parâmetros globais e realizar backups',
+                        icon: '⚙️',
+                        iconBg: '#8b5cf6',
+                        action: () => navigate('gestao-sistema.html')
+                    },
+                    {
+                        title: 'Configurações',
+                        description: 'Ajustar preferências do usuário',
+                        icon: '🔧',
+                        iconBg: '#6b7280',
+                        action: () => navigate('configuracoes.html')
+                    }
+                ]
+            },
+            gestor: {
+                welcome: {
+                    title: 'Painel do Gestor',
+                    subtitle: 'Gerencie vistorias e acompanhe o desempenho da equipe'
+                },
+                stats: [
+                    {
+                        title: 'Vistorias Pendentes',
+                        value: '28',
+                        description: '5 vencendo hoje',
+                        icon: '⏰',
+                        iconBg: '#f59e0b'
+                    },
+                    {
+                        title: 'Vistorias em Andamento',
+                        value: '45',
+                        description: '12 aguardando aprovação',
+                        icon: '🔄',
+                        iconBg: '#3b82f6'
+                    },
+                    {
+                        title: 'Vistorias Concluídas',
+                        value: '320',
+                        description: 'Este mês',
+                        icon: '✅',
+                        iconBg: '#10b981'
+                    },
+                    {
+                        title: 'Média de Tempo',
+                        value: '2.5 dias',
+                        description: 'Por vistoria',
+                        icon: '⏳',
+                        iconBg: '#8b5cf6'
+                    }
+                ],
+                actions: [
+                    {
+                        title: 'Acompanhar Vistorias',
+                        description: 'Visualizar e gerenciar vistorias em andamento',
+                        icon: '📋',
+                        iconBg: '#3b82f6',
+                        action: () => navigate('gerenciar-vistorias.html')
+                    },
+                    {
+                        title: 'Atribuir Vistorias',
+                        description: 'Designar vistorias para membros da equipe',
+                        icon: '👥',
+                        iconBg: '#10b981',
+                        action: () => navigate('atribuicao-vistorias.html')
+                    },
+                    {
+                        title: 'Relatórios de Vistorias',
+                        description: 'Acessar relatórios detalhados de vistorias',
+                        icon: '🔍',
+                        iconBg: '#ef4444',
+                        action: () => navigate('relatorios-vistorias.html')
+                    },
+                    {
+                        title: 'Relatórios Financeiros',
+                        description: 'Acessar relatórios financeiros do sistema',
+                        icon: '💰',
+                        iconBg: '#f59e0b',
+                        action: () => navigate('relatorios-financeiros.html')
+                    },
+                    {
+                        title: 'Configurações',
+                        description: 'Ajustar preferências do usuário',
+                        icon: '🔧',
+                        iconBg: '#6b7280',
+                        action: () => navigate('configuracoes.html')
+                    }
+                ]
+            },
+            vistoriador: {
+                welcome: {
+                    title: 'Painel do Vistoriador',
+                    subtitle: 'Gerencie suas vistorias atribuídas'
+                },
+                stats: [
+                    {
+                        title: 'Vistorias Atribuídas',
+                        value: '15',
+                        description: '3 vencendo hoje',
+                        icon: '📋',
+                        iconBg: '#3b82f6'
+                    },
+                    {
+                        title: 'Vistorias Concluídas',
+                        value: '42',
+                        description: 'Este mês',
+                        icon: '✅',
+                        iconBg: '#10b981'
+                    }
+                ],
+                actions: [
+                    {
+                        title: 'Minhas Vistorias',
+                        description: 'Visualizar e gerenciar suas vistorias atribuídas',
+                        icon: '📋',
+                        iconBg: '#3b82f6',
+                        action: () => navigate('detalhesvistoria.html')
+                    },
+                    {
+                        title: 'Configurações',
+                        description: 'Ajustar preferências do usuário',
+                        icon: '🔧',
+                        iconBg: '#6b7280',
+                        action: () => navigate('configuracoes.html')
+                    }
+                ]
+            }
+        };
+
+        // Load Dashboard Content
+        function loadDashboard(user) {
+            const dashboardContent = document.getElementById('dashboardContent');
+            const template = dashboardTemplates[user.profile] || null;
+
+            if (!template) {
+                dashboardContent.innerHTML = `
+                    <div class="restricted-message">
+                        <div class="restricted-icon">🔒</div>
+                        <h2>Acesso Restrito</h2>
+                        <p>Seu perfil não tem acesso a este painel. Entre em contato com o administrador.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            dashboardContent.innerHTML = `
+                <div class="welcome-section">
+                    <h2 class="welcome-title">${template.welcome.title}</h2>
+                    <p class="welcome-subtitle">${template.welcome.subtitle}</p>
+                </div>
+                <div class="stats-grid">
+                    ${template.stats.map(stat => `
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <h3 class="stat-title">${stat.title}</h3>
+                                <div class="stat-icon" style="background: ${stat.iconBg};">${stat.icon}</div>
+                            </div>
+                            <div class="stat-value">${stat.value}</div>
+                            <div class="stat-description">${stat.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="actions-grid">
+                    ${template.actions.map(action => `
+                        <div class="action-card">
+                            <div class="action-header">
+                                <div class="action-icon" style="background: ${action.iconBg};">${action.icon}</div>
+                                <h3 class="action-title">${action.title}</h3>
+                            </div>
+                            <p class="action-description">${action.description}</p>
+                            <button class="action-button" onclick="(${action.action})()">${action.title}</button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Initialize Dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            const user = checkSession();
+            if (user) {
+                // Update user info
+                document.getElementById('userName').textContent = user.name || 'Usuário';
+                document.getElementById('userProfile').textContent = user.profile || 'perfil';
+                document.getElementById('userAvatar').textContent = (user.name || 'U')[0].toUpperCase();
+                loadDashboard(user);
+            }
+        });
+    </script>
+</body>
+</html>

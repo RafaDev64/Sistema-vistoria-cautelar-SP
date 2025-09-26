@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vistoria - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/detalhesvistoria.css">
+ 
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="#dashboard">Dashboard</a>
+                <span>></span>
+                <a href="#vistoria.html">Vistorias</a>
+                <span>></span>
+                <span id="currentProtocol">VC2024001</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <span>📋</span>
+                    Voltar
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="vistoria-details">
+            <div class="details-header">
+                <div class="protocol-title">
+                    <span class="protocol-number" id="protocolNumber">VC2024001</span>
+                    <span class="status-badge status-pendente" id="statusBadge">Pendente</span>
+                </div>
+                <div class="client-info" id="clientInfo">
+                    João Silva Santos - Rua das Flores, 123 - Centro
+                </div>
+            </div>
+
+            <div class="details-content">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Vistoriador Responsável</span>
+                        <span class="info-value" id="vistoriadorName">Maria Santos</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Data da Vistoria</span>
+                        <span class="info-value" id="vistoriaDate">15/01/2024</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Data de Vencimento</span>
+                        <span class="info-value" id="vencimentoDate">20/01/2024</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Prioridade</span>
+                        <span class="priority-badge priority-alta" id="priorityBadge">Alta</span>
+                    </div>
+                </div>
+
+                <div id="alertContainer"></div>
+
+                <div id="resultSection">
+                    <div class="result-form">
+                        <h3 class="section-title">
+                            <span>📋</span>
+                            Registrar Resultado
+                        </h3>
+                        <form id="resultForm">
+                            <div class="form-group">
+                                <label for="resultStatus" class="form-label">Status</label>
+                                <select id="resultStatus" class="form-select" required>
+                                    <option value="">Selecione o status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="andamento">Em Andamento</option>
+                                    <option value="concluida">Concluída</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="resultComment" class="form-label">Comentário</label>
+                                <textarea id="resultComment" class="form-textarea" placeholder="Digite suas observações sobre o resultado" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Salvar Resultado</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="observations-section">
+                    <h3 class="section-title">
+                        <span>📝</span>
+                        Histórico de Observações
+                    </h3>
+                    <div id="observationsList">
+                        <!-- Observações carregadas dinamicamente pelo JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span>⚡</span>
+                        Ações Rápidas
+                    </h3>
+                </div>
+                <div class="card-content" id="quickActions">
+                    <button class="action-button btn-primary" onclick="alert('Iniciando vistoria...')">
+                        <span>▶️</span>
+                        Iniciar Vistoria
+                    </button>
+                    <button class="action-button btn-success" onclick="alert('Finalizando vistoria...')">
+                        <span>✅</span>
+                        Finalizar Vistoria
+                    </button>
+                    <button class="action-button btn-warning" onclick="alert('Cancelando vistoria...')">
+                        <span>❌</span>
+                        Cancelar Vistoria
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span>📅</span>
+                        Linha do Tempo
+                    </h3>
+                </div>
+                <div class="card-content">
+                    <div class="timeline" id="vistoriaTimeline">
+                        <!-- Linha do tempo carregada dinamicamente pelo JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span>📊</span>
+                        Estatísticas
+                    </h3>
+                </div>
+                <div class="card-content">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Tempo Decorrido</span>
+                            <span class="info-value" id="tempoDecorrido">3 dias</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Função para alternar tema claro/escuro
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Verifica o tema salvo no localStorage ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                document.getElementById('theme-icon').textContent = '☀️';
+            }
+
+            // Dados fictícios para observações
+            const observations = [
+                {
+                    author: "Maria Santos",
+                    date: "14/01/2024 14:30",
+                    text: "Realizada vistoria inicial. Veículo em bom estado, aguardando análise detalhada."
+                },
+                {
+                    author: "João Silva",
+                    date: "15/01/2024 09:15",
+                    text: "Pendência identificada na documentação. Solicitado ajuste."
+                }
+            ];
+
+            // Carrega observações dinamicamente
+            const observationsList = document.getElementById('observationsList');
+            observations.forEach(obs => {
+                const observationItem = document.createElement('div');
+                observationItem.className = 'observation-item';
+                observationItem.innerHTML = `
+                    <div class="observation-header">
+                        <span class="observation-author">${obs.author}</span>
+                        <span class="observation-date">${obs.date}</span>
+                    </div>
+                    <p class="observation-text">${obs.text}</p>
+                `;
+                observationsList.appendChild(observationItem);
+            });
+
+            // Dados fictícios para linha do tempo
+            const timelineEvents = [
+                {
+                    date: "14/01/2024 14:30",
+                    title: "Vistoria Iniciada",
+                    description: "Vistoria iniciada pelo responsável Maria Santos."
+                },
+                {
+                    date: "15/01/2024 09:15",
+                    title: "Pendência Identificada",
+                    description: "Pendência na documentação reportada por João Silva."
+                }
+            ];
+
+            // Carrega linha do tempo dinamicamente
+            const timeline = document.getElementById('vistoriaTimeline');
+            timelineEvents.forEach(event => {
+                const timelineItem = document.createElement('div');
+                timelineItem.className = 'timeline-item';
+                timelineItem.innerHTML = `
+                    <div class="timeline-date">${event.date}</div>
+                    <div class="timeline-title">${event.title}</div>
+                    <div class="timeline-description">${event.description}</div>
+                `;
+                timeline.appendChild(timelineItem);
+            });
+
+            // Manipulação do formulário de resultado
+            const resultForm = document.getElementById('resultForm');
+            const alertContainer = document.getElementById('alertContainer');
+            const statusBadge = document.getElementById('statusBadge');
+
+            resultForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const status = document.getElementById('resultStatus').value;
+                const comment = document.getElementById('resultComment').value;
+
+                if (status && comment) {
+                    // Atualiza o status da vistoria
+                    statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                    statusBadge.className = `status-badge status-${status}`;
+
+                    // Exibe alerta de sucesso
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            Resultado salvo com sucesso!
+                        </div>
+                    `;
+
+                    // Adiciona nova observação
+                    const newObservation = {
+                        author: "Sistema",
+                        date: new Date().toLocaleString('pt-BR'),
+                        text: comment
+                    };
+                    const observationItem = document.createElement('div');
+                    observationItem.className = 'observation-item';
+                    observationItem.innerHTML = `
+                        <div class="observation-header">
+                            <span class="observation-author">${newObservation.author}</span>
+                            <span class="observation-date">${newObservation.date}</span>
+                        </div>
+                        <p class="observation-text">${newObservation.text}</p>
+                    `;
+                    observationsList.prepend(observationItem);
+
+                    // Adiciona evento à linha do tempo
+                    const newTimelineItem = document.createElement('div');
+                    newTimelineItem.className = 'timeline-item';
+                    newTimelineItem.innerHTML = `
+                        <div class="timeline-date">${newObservation.date}</div>
+                        <div class="timeline-title">Status Atualizado</div>
+                        <div class="timeline-description">Status alterado para "${status}" com comentário: ${comment}</div>
+                    `;
+                    timeline.prepend(newTimelineItem);
+
+                    // Limpa o formulário
+                    resultForm.reset();
+                } else {
+                    // Exibe alerta de erro
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-error">
+                            Por favor, preencha todos os campos!
+                        </div>
+                    `;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

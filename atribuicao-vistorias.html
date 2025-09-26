@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atribuição de Vistorias - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/atribuicao-vistorias.css">
+
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="dashboard.html">Dashboard</a>
+                <span>></span>
+                <span>Atribuição de Vistorias</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <span>🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Atribuição de Vistorias</h1>
+            <p class="page-subtitle">Atribua vistorias a membros da equipe</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="search-section">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar por protocolo ou cliente...">
+                    <select class="filter-select" id="statusFilter">
+                        <option value="">Todos os Status</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="andamento">Em Andamento</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" onclick="exportAssignments()">
+                    <span>📊</span>
+                    Exportar
+                </button>
+            </div>
+        </div>
+
+        <div class="assignment-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Protocolo</th>
+                        <th>Cliente</th>
+                        <th>Status</th>
+                        <th>Vistoriador Atual</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="assignmentTableBody">
+                    <!-- Conteúdo carregado dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal for Assign Vistoria -->
+    <div class="modal-overlay" id="assignModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Atribuir Vistoriador</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalContent">
+                <!-- Modal content populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample vistorias for assignment
+        const sampleVistorias = [
+            { id: 1, protocolo: 'VC2024001', cliente: 'João Silva', status: 'pendente', vistoriador: 'Não atribuído' },
+            { id: 2, protocolo: 'VC2024002', cliente: 'Empresa ABC', status: 'pendente', vistoriador: 'Não atribuído' },
+            { id: 3, protocolo: 'VC2024003', cliente: 'Maria Oliveira', status: 'andamento', vistoriador: 'João Silva' },
+            { id: 4, protocolo: 'VC2024004', cliente: 'Carlos Pereira', status: 'pendente', vistoriador: 'Não atribuído' },
+            { id: 5, protocolo: 'VC2024005', cliente: 'Construtora XYZ', status: 'pendente', vistoriador: 'Não atribuído' }
+        ];
+
+        let filteredVistorias = [...sampleVistorias];
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            const profile = JSON.parse(session).profile;
+            if (profile !== 'admin' && profile !== 'gestor') {
+                document.getElementById('alertContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        Acesso restrito. Apenas admins e gestores podem acessar esta seção.
+                    </div>
+                `;
+                document.getElementById('assignmentTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-icon">🔒</div>
+                            <p>Acesso não autorizado.</p>
+                        </td>
+                    </tr>
+                `;
+                return false;
+            }
+            return true;
+        }
+
+        // Populate Table
+        function populateTable() {
+            const tbody = document.getElementById('assignmentTableBody');
+            tbody.innerHTML = '';
+            filteredVistorias.forEach(vistoria => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${vistoria.protocolo}</td>
+                    <td>${vistoria.cliente}</td>
+                    <td>${vistoria.status}</td>
+                    <td>${vistoria.vistoriador}</td>
+                    <td class="table-actions">
+                        <button class="btn-action btn-assign" onclick="openAssignModal(${vistoria.id})">Atribuir</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Apply Filters
+        function applyFilters() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredVistorias = sampleVistorias.filter(v => {
+                const matchesSearch = v.protocolo.toLowerCase().includes(searchInput) || v.cliente.toLowerCase().includes(searchInput);
+                const matchesStatus = !statusFilter || v.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+
+            populateTable();
+        }
+
+        // Open Assign Modal
+        function openAssignModal(id) {
+            const vistoria = sampleVistorias.find(v => v.id === id);
+            if (!vistoria) return;
+
+            const modal = document.getElementById('assignModal');
+            const modalContent = document.getElementById('modalContent');
+
+            modalContent.innerHTML = `
+                <form id="assignForm">
+                    <div class="form-group">
+                        <label class="form-label" for="vistoriador">Vistoriador</label>
+                        <select id="vistoriador" class="form-select" required>
+                            <option value="">Selecione um vistoriador</option>
+                            <option value="Maria Santos">Maria Santos</option>
+                            <option value="João Silva">João Silva</option>
+                            <option value="Ana Costa">Ana Costa</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Atribuir</button>
+                </form>
+            `;
+            modal.style.display = 'flex';
+
+            document.getElementById('assignForm').onsubmit = (e) => {
+                e.preventDefault();
+                const vistoriador = document.getElementById('vistoriador').value;
+                if (vistoriador) {
+                    vistoria.vistoriador = vistoriador;
+                    applyFilters();
+                    closeModal();
+                    // Simular envio para backend ou WebSocket para tempo real
+                    showAlert('success', 'Vistoria atribuída com sucesso!');
+                }
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('assignModal').style.display = 'none';
+        }
+
+        // Export Assignments
+        function exportAssignments() {
+            const csv = ['ID,Protocolo,Cliente,Status,Vistoriador'];
+            filteredVistorias.forEach(v => csv.push(`${v.id},${v.protocolo},${v.cliente},${v.status},${v.vistoriador}`));
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'atribuicoes-vistorias.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            if (checkSession()) {
+                document.getElementById('searchInput').addEventListener('input', applyFilters);
+                document.getElementById('statusFilter').addEventListener('change', applyFilters);
+                applyFilters();
+            }
+        });
+    </script>
+</body>
+</html>

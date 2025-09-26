@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuários - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/usuarios.css">
+    <style>
+
+    </style>
+</head>
+<header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="#dashboard">Dashboard</a>
+                <span>></span>
+                <span>Usuários</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <span>🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Gerenciar Usuários</h1>
+            <p class="page-subtitle">Criar, editar e gerenciar contas de usuários do sistema</p>
+        </div>
+
+        <div class="admin-warning">
+            <span>⚠️</span>
+            <div>
+                <strong>Área Restrita:</strong> Esta seção é exclusiva para administradores. 
+                Tenha cuidado ao modificar informações de usuários.
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="search-section">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nome ou email...">
+                    <select class="filter-select" id="profileFilter">
+                        <option value="">Todos os Perfis</option>
+                        <option value="admin">Administrador</option>
+                        <option value="gestor">Gestor</option>
+                        <option value="vistoriador">Vistoriador</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="exportUsers()">
+                    <span>📊</span>
+                    Exportar
+                </button>
+                
+                <button class="btn btn-primary" onclick="openCreateModal()" id="createUserBtn">
+                    <span>➕</span>
+                    Novo Usuário
+                </button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div id="usersContainer">
+            <div class="users-grid" id="usersGrid">
+                <!-- Users will be loaded dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Create/Edit User -->
+    <div class="modal-overlay" id="userModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Novo Usuário</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalContent">
+                <!-- Modal content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample users data (completed)
+        const sampleUsers = [
+            {
+                id: 1,
+                name: 'Administrador Sistema',
+                email: 'admin@vistoria.com',
+                profile: 'admin',
+                active: true,
+                createdAt: '2024-01-01',
+                lastLogin: '2025-09-24',
+                vistorias: 0
+            },
+            {
+                id: 2,
+                name: 'Maria Santos',
+                email: 'maria.santos@vistoria.com',
+                profile: 'gestor',
+                active: true,
+                createdAt: '2024-02-15',
+                lastLogin: '2025-09-23',
+                vistorias: 45
+            },
+            {
+                id: 3,
+                name: 'João Silva',
+                email: 'joao.silva@vistoria.com',
+                profile: 'vistoriador',
+                active: true,
+                createdAt: '2024-03-10',
+                lastLogin: '2025-09-22',
+                vistorias: 120
+            },
+            {
+                id: 4,
+                name: 'Ana Costa',
+                email: 'ana.costa@vistoria.com',
+                profile: 'vistoriador',
+                active: false,
+                createdAt: '2024-04-05',
+                lastLogin: '2025-08-15',
+                vistorias: 30
+            }
+        ];
+
+        // State management
+        let filteredUsers = [...sampleUsers];
+        let currentUserProfile = localStorage.getItem('userSession') ? JSON.parse(localStorage.getItem('userSession')).profile : 'admin';
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session || JSON.parse(session).profile !== 'admin') {
+                document.getElementById('alertContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        Acesso restrito. Apenas administradores podem acessar esta seção.
+                    </div>
+                `;
+                document.getElementById('usersContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔒</div>
+                        <p>Acesso não autorizado.</p>
+                    </div>
+                `;
+                document.getElementById('createUserBtn').disabled = true;
+                document.getElementById('createUserBtn').style.opacity = '0.5';
+                document.getElementById('createUserBtn').style.cursor = 'not-allowed';
+                return false;
+            }
+            return true;
+        }
+
+        // Populate Users Grid
+        function populateUsers() {
+            const usersGrid = document.getElementById('usersGrid');
+            usersGrid.innerHTML = '';
+
+            if (filteredUsers.length === 0) {
+                usersGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>Nenhum usuário encontrado</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredUsers.forEach(user => {
+                const userCard = document.createElement('div');
+                userCard.className = 'user-card';
+                userCard.innerHTML = `
+                    <div class="user-header">
+                        <div class="user-avatar" style="background: ${
+                            user.profile === 'admin' ? '#ef4444' :
+                            user.profile === 'gestor' ? '#3b82f6' : '#10b981'
+                        }">${user.name[0].toUpperCase()}</div>
+                        <div class="user-info">
+                            <h3>${user.name}</h3>
+                            <p>${user.email}</p>
+                        </div>
+                    </div>
+                    <span class="user-profile profile-${user.profile}">${user.profile.charAt(0).toUpperCase() + user.profile.slice(1)}</span>
+                    <div class="user-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${user.vistorias}</div>
+                            <div class="stat-label">Vistorias</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${user.active ? 'Ativo' : 'Inativo'}</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn-action btn-edit" onclick="openEditModal(${user.id})">Editar</button>
+                        <button class="btn-action btn-delete" onclick="deleteUser(${user.id})">Excluir</button>
+                    </div>
+                `;
+                usersGrid.appendChild(userCard);
+            });
+        }
+
+        // Search and Filter
+        function applyFilters() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const profileFilter = document.getElementById('profileFilter').value;
+
+            filteredUsers = sampleUsers.filter(user => {
+                const matchesSearch = user.name.toLowerCase().includes(searchInput) ||
+                    user.email.toLowerCase().includes(searchInput);
+                const matchesProfile = !profileFilter || user.profile === profileFilter;
+                return matchesSearch && matchesProfile;
+            });
+
+            populateUsers();
+        }
+
+        // Modal Management
+        function openCreateModal() {
+            if (!checkSession()) return;
+
+            const modal = document.getElementById('userModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modalTitle.textContent = 'Novo Usuário';
+            modalContent.innerHTML = `
+                <form id="userForm">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Nome</label>
+                        <input type="text" id="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" id="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="profile">Perfil</label>
+                        <select id="profile" class="form-select" required>
+                            <option value="admin">Administrador</option>
+                            <option value="gestor">Gestor</option>
+                            <option value="vistoriador">Vistoriador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="active">Status</label>
+                        <select id="active" class="form-select" required>
+                            <option value="true">Ativo</option>
+                            <option value="false">Inativo</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </form>
+            `;
+            modal.style.display = 'flex';
+
+            document.getElementById('userForm').onsubmit = (e) => {
+                e.preventDefault();
+                const newUser = {
+                    id: sampleUsers.length + 1,
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    profile: document.getElementById('profile').value,
+                    active: document.getElementById('active').value === 'true',
+                    createdAt: new Date().toISOString().split('T')[0],
+                    lastLogin: '-',
+                    vistorias: 0
+                };
+                sampleUsers.push(newUser);
+                applyFilters();
+                closeModal();
+                showAlert('success', 'Usuário criado com sucesso!');
+            };
+        }
+
+        function openEditModal(id) {
+            if (!checkSession()) return;
+
+            const user = sampleUsers.find(u => u.id === id);
+            if (!user) return;
+
+            const modal = document.getElementById('userModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modalTitle.textContent = 'Editar Usuário';
+            modalContent.innerHTML = `
+                <form id="userForm">
+                    <input type="hidden" id="id" value="${user.id}">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Nome</label>
+                        <input type="text" id="name" class="form-input" value="${user.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" id="email" class="form-input" value="${user.email}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="profile">Perfil</label>
+                        <select id="profile" class="form-select" required>
+                            <option value="admin" ${user.profile === 'admin' ? 'selected' : ''}>Administrador</option>
+                            <option value="gestor" ${user.profile === 'gestor' ? 'selected' : ''}>Gestor</option>
+                            <option value="vistoriador" ${user.profile === 'vistoriador' ? 'selected' : ''}>Vistoriador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="active">Status</label>
+                        <select id="active" class="form-select" required>
+                            <option value="true" ${user.active ? 'selected' : ''}>Ativo</option>
+                            <option value="false" ${!user.active ? 'selected' : ''}>Inativo</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </form>
+            `;
+            modal.style.display = 'flex';
+
+            document.getElementById('userForm').onsubmit = (e) => {
+                e.preventDefault();
+                const updatedUser = {
+                    id: parseInt(document.getElementById('id').value),
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    profile: document.getElementById('profile').value,
+                    active: document.getElementById('active').value === 'true',
+                    createdAt: user.createdAt,
+                    lastLogin: user.lastLogin,
+                    vistorias: user.vistorias
+                };
+                const index = sampleUsers.findIndex(u => u.id === updatedUser.id);
+                sampleUsers[index] = updatedUser;
+                applyFilters();
+                closeModal();
+                showAlert('success', 'Usuário atualizado com sucesso!');
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        function deleteUser(id) {
+            if (!checkSession()) return;
+
+            if (confirm('Deseja realmente excluir este usuário?')) {
+                sampleUsers = sampleUsers.filter(u => u.id !== id);
+                applyFilters();
+                showAlert('success', 'Usuário excluído com sucesso!');
+            }
+        }
+
+        function exportUsers() {
+            if (!checkSession()) return;
+
+            const csv = ['ID,Nome,Email,Perfil,Status,Criado em,Último Login,Vistorias'];
+            filteredUsers.forEach(user => {
+                csv.push(`${user.id},${user.name},${user.email},${user.profile},${user.active ? 'Ativo' : 'Inativo'},${user.createdAt},${user.lastLogin},${user.vistorias}`);
+            });
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'usuarios.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            if (checkSession()) {
+                document.getElementById('searchInput').addEventListener('input', applyFilters);
+                document.getElementById('profileFilter').addEventListener('change', applyFilters);
+                applyFilters();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vistorias - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/gerenciar-vistorias.css">
+
+</head>
+
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="#dashboard">Dashboard</a>
+                <span>></span>
+                <span>Vistorias</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <span>🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Gerenciar Vistorias</h1>
+            <p class="page-subtitle">Visualize, crie e gerencie todas as vistorias do sistema</p>
+        </div>
+
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="search-section">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Buscar por cliente, endereço ou protocolo...">
+                    <select class="filter-select" id="statusFilter">
+                        <option value="">Todos os Status</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="andamento">Em Andamento</option>
+                        <option value="concluida">Concluída</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                    <select class="filter-select" id="vistoriadorFilter">
+                        <option value="">Todos Vistoriadores</option>
+                        <option value="maria-santos">Maria Santos</option>
+                        <option value="joao-silva">João Silva</option>
+                        <option value="ana-costa">Ana Costa</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="exportData()">
+                    <span>📊</span>
+                    Exportar
+                </button>
+                
+                <button class="btn btn-primary" onclick="openCreateModal()" id="createVistoriaBtn">
+                    <span>➕</span>
+                    Nova Vistoria
+                </button>
+            </div>
+        </div>
+
+        <div class="vistorias-table">
+            <div class="table-header">
+                <h2 class="table-title">Lista de Vistorias</h2>
+            </div>
+            
+            <div id="tableContainer">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Protocolo</th>
+                            <th>Cliente</th>
+                            <th>Endereço</th>
+                            <th>Vistoriador</th>
+                            <th>Status</th>
+                            <th>Prioridade</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vistoriasTableBody">
+                        <!-- Table content will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                <div class="pagination-info">
+                    Mostrando <span id="showing">1-10</span> de <span id="total">0</span> vistorias
+                </div>
+                <div class="pagination-controls">
+                    <button class="pagination-btn" onclick="changePage(-1)" id="prevBtn">Anterior</button>
+                    <span id="pageNumbers"></span>
+                    <button class="pagination-btn" onclick="changePage(1)" id="nextBtn">Próximo</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Create/Edit -->
+    <div class="modal-overlay" id="vistoriaModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Nova Vistoria</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalContent">
+                <!-- Modal content will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let filteredVistorias = [...sampleVistorias];
+        let currentUserProfile = localStorage.getItem('userSession') ? JSON.parse(localStorage.getItem('userSession')).profile : 'admin';
+
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            return JSON.parse(session);
+        }
+
+        // Table Population
+        function populateTable() {
+            const tbody = document.getElementById('vistoriasTableBody');
+            tbody.innerHTML = '';
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedVistorias = filteredVistorias.slice(start, end);
+
+            if (paginatedVistorias.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <p>Nenhuma vistoria encontrada</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                paginatedVistorias.forEach(vistoria => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${vistoria.protocolo}</td>
+                        <td>${vistoria.cliente}</td>
+                        <td>${vistoria.endereco}</td>
+                        <td>${vistoria.vistoriador}</td>
+                        <td><span class="status-badge status-${vistoria.status}">${vistoria.status.charAt(0).toUpperCase() + vistoria.status.slice(1)}</span></td>
+                        <td><span class="priority-badge priority-${vistoria.prioridade}">${vistoria.prioridade.charAt(0).toUpperCase() + vistoria.prioridade.slice(1)}</span></td>
+                        <td>${vistoria.data}</td>
+                        <td class="table-actions">
+                            <button class="btn-action btn-view" onclick="viewVistoria(${vistoria.id})">Visualizar</button>
+                            ${currentUserProfile === 'admin' ? `
+                                <button class="btn-action btn-edit" onclick="openEditModal(${vistoria.id})">Editar</button>
+                                <button class="btn-action btn-delete" onclick="deleteVistoria(${vistoria.id})">Excluir</button>
+                            ` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            updatePagination();
+        }
+
+        // Pagination
+        function updatePagination() {
+            const totalItems = filteredVistorias.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const showing = document.getElementById('showing');
+            const total = document.getElementById('total');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+
+            const start = (currentPage - 1) * itemsPerPage + 1;
+            const end = Math.min(currentPage * itemsPerPage, totalItems);
+            showing.textContent = `${start}-${end}`;
+            total.textContent = totalItems;
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+
+            pageNumbers.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                btn.textContent = i;
+                btn.onclick = () => {
+                    currentPage = i;
+                    populateTable();
+                };
+                pageNumbers.appendChild(btn);
+            }
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredVistorias.length / itemsPerPage);
+            currentPage = Math.max(1, Math.min(currentPage + direction, totalPages));
+            populateTable();
+        }
+
+        // Search and Filter
+        function applyFilters() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const vistoriadorFilter = document.getElementById('vistoriadorFilter').value;
+
+            filteredVistorias = sampleVistorias.filter(vistoria => {
+                const matchesSearch = vistoria.cliente.toLowerCase().includes(searchInput) ||
+                    vistoria.endereco.toLowerCase().includes(searchInput) ||
+                    vistoria.protocolo.toLowerCase().includes(searchInput);
+                const matchesStatus = !statusFilter || vistoria.status === statusFilter;
+                const matchesVistoriador = !vistoriadorFilter || vistoria.vistoriador.toLowerCase().replace(' ', '-') === vistoriadorFilter;
+                return matchesSearch && matchesStatus && matchesVistoriador;
+            });
+
+            currentPage = 1;
+            populateTable();
+        }
+
+        // Modal Management
+        function openCreateModal() {
+            if (currentUserProfile !== 'admin') {
+                alert('Apenas administradores podem criar vistorias.');
+                return;
+            }
+
+            const modal = document.getElementById('vistoriaModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modalTitle.textContent = 'Nova Vistoria';
+            modalContent.innerHTML = `
+                <form id="vistoriaForm">
+                    <div class="form-group">
+                        <label for="protocolo">Protocolo</label>
+                        <input type="text" id="protocolo" class="search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente">Cliente</label>
+                        <input type="text" id="cliente" class="search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endereco">Endereço</label>
+                        <input type="text" id="endereco" class="search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="vistoriador">Vistoriador</label>
+                        <select id="vistoriador" class="filter-select" required>
+                            <option value="Maria Santos">Maria Santos</option>
+                            <option value="João Silva">João Silva</option>
+                            <option value="Ana Costa">Ana Costa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" class="filter-select" required>
+                            <option value="pendente">Pendente</option>
+                            <option value="andamento">Em Andamento</option>
+                            <option value="concluida">Concluída</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prioridade">Prioridade</label>
+                        <select id="prioridade" class="filter-select" required>
+                            <option value="alta">Alta</option>
+                            <option value="media">Média</option>
+                            <option value="baixa">Baixa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="data">Data</label>
+                        <input type="date" id="data" class="search-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataVencimento">Data de Vencimento</label>
+                        <input type="date" id="dataVencimento" class="search-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </form>
+            `;
+            modal.style.display = 'flex';
+
+            document.getElementById('vistoriaForm').onsubmit = (e) => {
+                e.preventDefault();
+                const newVistoria = {
+                    id: sampleVistorias.length + 1,
+                    protocolo: document.getElementById('protocolo').value,
+                    cliente: document.getElementById('cliente').value,
+                    endereco: document.getElementById('endereco').value,
+                    vistoriador: document.getElementById('vistoriador').value,
+                    status: document.getElementById('status').value,
+                    prioridade: document.getElementById('prioridade').value,
+                    data: document.getElementById('data').value,
+                    dataVencimento: document.getElementById('dataVencimento').value
+                };
+                sampleVistorias.push(newVistoria);
+                applyFilters();
+                closeModal();
+                alert('Vistoria criada com sucesso!');
+            };
+        }
+
+        function openEditModal(id) {
+            if (currentUserProfile !== 'admin') {
+                alert('Apenas administradores podem editar vistorias.');
+                return;
+            }
+
+            const vistoria = sampleVistorias.find(v => v.id === id);
+            if (!vistoria) return;
+
+            const modal = document.getElementById('vistoriaModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modalTitle.textContent = 'Editar Vistoria';
+            modalContent.innerHTML = `
+                <form id="vistoriaForm">
+                    <input type="hidden" id="id" value="${vistoria.id}">
+                    <div class="form-group">
+                        <label for="protocolo">Protocolo</label>
+                        <input type="text" id="protocolo" class="search-input" value="${vistoria.protocolo}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cliente">Cliente</label>
+                        <input type="text" id="cliente" class="search-input" value="${vistoria.cliente}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endereco">Endereço</label>
+                        <input type="text" id="endereco" class="search-input" value="${vistoria.endereco}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="vistoriador">Vistoriador</label>
+                        <select id="vistoriador" class="filter-select" required>
+                            <option value="Maria Santos" ${vistoria.vistoriador === 'Maria Santos' ? 'selected' : ''}>Maria Santos</option>
+                            <option value="João Silva" ${vistoria.vistoriador === 'João Silva' ? 'selected' : ''}>João Silva</option>
+                            <option value="Ana Costa" ${vistoria.vistoriador === 'Ana Costa' ? 'selected' : ''}>Ana Costa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" class="filter-select" required>
+                            <option value="pendente" ${vistoria.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                            <option value="andamento" ${vistoria.status === 'andamento' ? 'selected' : ''}>Em Andamento</option>
+                            <option value="concluida" ${vistoria.status === 'concluida' ? 'selected' : ''}>Concluída</option>
+                            <option value="cancelada" ${vistoria.status === 'cancelada' ? 'selected' : ''}>Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prioridade">Prioridade</label>
+                        <select id="prioridade" class="filter-select" required>
+                            <option value="alta" ${vistoria.prioridade === 'alta' ? 'selected' : ''}>Alta</option>
+                            <option value="media" ${vistoria.prioridade === 'media' ? 'selected' : ''}>Média</option>
+                            <option value="baixa" ${vistoria.prioridade === 'baixa' ? 'selected' : ''}>Baixa</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="data">Data</label>
+                        <input type="date" id="data" class="search-input" value="${vistoria.data}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataVencimento">Data de Vencimento</label>
+                        <input type="date" id="dataVencimento" class="search-input" value="${vistoria.dataVencimento}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </form>
+            `;
+            modal.style.display = 'flex';
+
+            document.getElementById('vistoriaForm').onsubmit = (e) => {
+                e.preventDefault();
+                const updatedVistoria = {
+                    id: parseInt(document.getElementById('id').value),
+                    protocolo: document.getElementById('protocolo').value,
+                    cliente: document.getElementById('cliente').value,
+                    endereco: document.getElementById('endereco').value,
+                    vistoriador: document.getElementById('vistoriador').value,
+                    status: document.getElementById('status').value,
+                    prioridade: document.getElementById('prioridade').value,
+                    data: document.getElementById('data').value,
+                    dataVencimento: document.getElementById('dataVencimento').value
+                };
+                const index = sampleVistorias.findIndex(v => v.id === updatedVistoria.id);
+                sampleVistorias[index] = updatedVistoria;
+                applyFilters();
+                closeModal();
+                alert('Vistoria atualizada com sucesso!');
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('vistoriaModal').style.display = 'none';
+        }
+
+        function viewVistoria(id) {
+            alert(`Visualizando vistoria ID: ${id}`);
+            // Em um sistema real, redirecionar para a página de detalhes: window.location.href = `vistoria.html?id=${id}`;
+        }
+
+        function deleteVistoria(id) {
+            if (currentUserProfile !== 'admin') {
+                alert('Apenas administradores podem excluir vistorias.');
+                return;
+            }
+
+            if (confirm('Deseja realmente excluir esta vistoria?')) {
+                sampleVistorias = sampleVistorias.filter(v => v.id !== id);
+                applyFilters();
+                alert('Vistoria excluída com sucesso!');
+            }
+        }
+
+        function exportData() {
+            const csv = ['Protocolo,Cliente,Endereço,Vistoriador,Status,Prioridade,Data,Data de Vencimento'];
+            filteredVistorias.forEach(v => {
+                csv.push(`${v.protocolo},${v.cliente},${v.endereco},${v.vistoriador},${v.status},${v.prioridade},${v.data},${v.dataVencimento}`);
+            });
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'vistorias.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkSession();
+
+            // Restrict create button for non-admins
+            if (currentUserProfile !== 'admin') {
+                document.getElementById('createVistoriaBtn').disabled = true;
+                document.getElementById('createVistoriaBtn').style.opacity = '0.5';
+                document.getElementById('createVistoriaBtn').style.cursor = 'not-allowed';
+            }
+
+            // Event Listeners for Filters
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+            document.getElementById('vistoriadorFilter').addEventListener('change', applyFilters);
+
+            // Initial Table Population
+            applyFilters();
+        });
+    </script>
+</body>
+</html>

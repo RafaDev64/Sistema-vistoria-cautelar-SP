@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão do Sistema - Vistoria Cautelar SP</title>
+    <link rel="stylesheet" href="assets/css/gestao-sistema.css">
+    
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="breadcrumb">
+                <a href="dashboard.html">Dashboard</a>
+                <span>></span>
+                <span>Gestão do Sistema</span>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()" aria-label="Alternar tema">
+                    <span id="theme-icon">🌙</span>
+                </button>
+                
+                <a href="dashboard.html" class="btn btn-secondary" aria-label="Voltar ao Dashboard">
+                    <span>🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Gestão do Sistema</h1>
+            <p class="page-subtitle">Configure parâmetros globais e realize backups</p>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="settings-section">
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label class="form-label" for="systemName">Nome do Sistema</label>
+                    <input type="text" id="systemName" class="form-input" value="Vistoria Cautelar SP" required aria-label="Nome do Sistema">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="maxVistorias">Máximo de Vistorias por Dia</label>
+                    <input type="number" id="maxVistorias" class="form-input" value="50" required aria-label="Máximo de Vistorias por Dia">
+                </div>
+                <button type="submit" class="btn btn-primary" aria-label="Salvar Configurações">Salvar Configurações</button>
+            </form>
+
+            <button class="btn btn-secondary" onclick="performBackup()" style="margin-top: 1rem;" aria-label="Realizar Backup">
+                <span>💾</span>
+                Realizar Backup
+            </button>
+        </div>
+    </main>
+
+    <script>
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // Session Management
+        function checkSession() {
+            const session = localStorage.getItem('userSession');
+            if (!session) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            const profile = JSON.parse(session).profile;
+            if (profile !== 'admin') {
+                document.getElementById('alertContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        Acesso restrito. Apenas administradores podem acessar esta seção.
+                    </div>
+                `;
+                document.getElementById('settingsForm').style.display = 'none';
+                document.querySelector('.btn-secondary[onclick="performBackup()"]').style.display = 'none';
+                return false;
+            }
+            return true;
+        }
+
+        // Save Settings (fictício)
+        function saveSettings(e) {
+            e.preventDefault();
+            // Simula salvamento no backend
+            showAlert('success', 'Configurações salvas com sucesso!');
+        }
+
+        // Perform Backup (fictício)
+        function performBackup() {
+            // Simula backup no backend
+            showAlert('success', 'Backup realizado com sucesso!');
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alertContainer');
+            alertContainer.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            if (checkSession()) {
+                document.getElementById('settingsForm').addEventListener('submit', saveSettings);
+            }
+        });
+    </script>
+</body>
+</html>

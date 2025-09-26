@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vistoria Cautelar SP - Login</title>
+    <link rel="stylesheet" href="assets/css/index.css">
+    
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <div class="login-container">
+        <div class="header">
+            <div class="logo">VC</div>
+            <h1 class="company-name">Vistoria Cautelar SP</h1>
+            <p class="subtitle">Sistema de Gerenciamento de Vistorias</p>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                Entrar
+            </button>
+        </form>
+
+        <div class="demo-credentials">
+            <div class="demo-title">Contas de Demonstração:</div>
+            <div class="credential-item">
+                <span><strong>Admin:</strong> admin@vistoria.com</span>
+                <span>admin123</span>
+            </div>
+            <div class="credential-item">
+                <span><strong>Gestor:</strong> gestor@vistoria.com</span>
+                <span>gestor123</span>
+            </div>
+            <div class="credential-item">
+                <span><strong>Vistoriador:</strong> vistoriador@vistoria.com</span>
+                <span>vistoriador123</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/index-Script.js">
+    </script>
+</body>
+</html>
