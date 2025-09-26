@@ -129,9 +129,7 @@ Desenvolver um sistema para gerenciar vistorias, com autenticação, controle de
 4. Push: `git push origin feature/nova-funcionalidade`.
 5. Abra um Pull Request.
 
-## Licença
 
-!--MIT License. Veja [LICENSE](LICENSE) para detalhes.-->
 
 ## Contato
 
